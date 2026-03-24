@@ -1,14 +1,12 @@
 import jwt from "jsonwebtoken";
 
-function getRequiredEnv(name: string): string {
-  const value = process.env[name];
+function getJwtSecret(): string {
+  const value = process.env.JWT_SECRET;
   if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
+    throw new Error("Missing required environment variable: JWT_SECRET");
   }
   return value;
 }
-
-const JWT_SECRET = getRequiredEnv("JWT_SECRET");
 
 export interface JWTPayload {
   userId: string;
@@ -18,26 +16,26 @@ export interface JWTPayload {
 }
 
 export function generateToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: "7d" });
 }
 
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+    return jwt.verify(token, getJwtSecret()) as JWTPayload;
   } catch {
     return null;
   }
 }
 
 export function generateTransactionToken(payload: Record<string, unknown>): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "30d" });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: "30d" });
 }
 
 export function verifyTransactionToken<T extends Record<string, unknown> = Record<string, unknown>>(
   token: string
 ): T | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as T;
+    return jwt.verify(token, getJwtSecret()) as T;
   } catch {
     return null;
   }
@@ -49,12 +47,12 @@ type PasswordResetPayload = {
 };
 
 export function generatePasswordResetToken(payload: PasswordResetPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "10m" });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: "10m" });
 }
 
 export function verifyPasswordResetToken(token: string): PasswordResetPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as PasswordResetPayload;
+    return jwt.verify(token, getJwtSecret()) as PasswordResetPayload;
   } catch {
     return null;
   }
