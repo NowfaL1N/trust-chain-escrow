@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
-import { getRequiredEnv } from "@/lib/security";
 
 // Edge-compatible JWT verify (jsonwebtoken does not work in Edge runtime)
 async function verifyTokenEdge(token: string): Promise<{ role?: string } | null> {
-  const secret = getRequiredEnv("JWT_SECRET");
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("Missing required environment variable: JWT_SECRET");
+  }
   try {
     const key = new TextEncoder().encode(secret);
     const { payload } = await jwtVerify(token, key);

@@ -117,9 +117,9 @@ export function DashboardShell({
         <div className="p-4 flex items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/colour-trust-chain-logo.png"
+            src="/trust-chain-logo-webpe.gif"
             alt="TrustChain Logo"
-            className="w-48 max-h-16 object-contain"
+            className="h-14 w-[100px] object-contain"
           />
         </div>
         <nav className="flex-1 px-4 py-4 space-y-2">
