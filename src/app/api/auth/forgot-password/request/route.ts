@@ -3,7 +3,6 @@ import crypto from "crypto";
 import { getSupabaseServer } from "@/lib/supabase";
 import { sendPasswordResetOtpEmail } from "@/lib/email";
 import { generatePasswordResetToken } from "@/lib/auth";
-import { clientIpFromRequest, isRateLimited } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +20,6 @@ export async function POST(req: Request) {
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
     if (!email) {
       return NextResponse.json({ error: "Email is required." }, { status: 400 });
-    }
-    if (isRateLimited(`forgot-request:${clientIpFromRequest(req)}:${email}`, 5, 15 * 60 * 1000)) {
-      return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
     }
 
     const supabase = getSupabaseServer();

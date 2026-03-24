@@ -3,8 +3,6 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { getSupabaseServer } from "@/lib/supabase";
 import { verifyPasswordResetToken } from "@/lib/auth";
-import { clientIpFromRequest, isRateLimited } from "@/lib/rate-limit";
-import { isStrongPassword } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
@@ -22,15 +20,6 @@ export async function POST(req: Request) {
 
     if (!email || !otp || !newPassword || !resetToken) {
       return NextResponse.json({ error: "Email, OTP, reset token, and new password are required." }, { status: 400 });
-    }
-    if (isRateLimited(`forgot-reset:${clientIpFromRequest(req)}:${email}`, 10, 15 * 60 * 1000)) {
-      return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
-    }
-    if (!isStrongPassword(newPassword)) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character." },
-        { status: 400 }
-      );
     }
 
     const payload = verifyPasswordResetToken(resetToken);

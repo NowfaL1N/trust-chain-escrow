@@ -4,12 +4,6 @@ import { sendVerificationEmail } from "@/lib/email";
 
 const DEMO_EMAIL = "sreeharisreehari611@gmail.com";
 
-function isDebugAuthorized(request: Request): boolean {
-  const key = (process.env.SEED_ADMIN_KEY || "").trim();
-  if (!key) return process.env.NODE_ENV !== "production";
-  return request.headers.get("x-admin-key") === key;
-}
-
 /**
  * Sends a test verification email to the demo seller address so you can
  * confirm JWT/token emails are being delivered.
@@ -17,9 +11,6 @@ function isDebugAuthorized(request: Request): boolean {
  * Add ?check=1 to see if SMTP_* env vars are loaded (no values shown).
  */
 export async function GET(request: Request) {
-  if (!isDebugAuthorized(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
   const { searchParams } = new URL(request.url);
   if (searchParams.get("check") === "1") {
     return NextResponse.json({
@@ -36,10 +27,7 @@ export async function GET(request: Request) {
   return sendTestEmail();
 }
 
-export async function POST(request: Request) {
-  if (!isDebugAuthorized(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export async function POST() {
   return sendTestEmail();
 }
 
