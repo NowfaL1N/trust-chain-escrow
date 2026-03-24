@@ -1,0 +1,4 @@
+﻿C:\Users\Admin\Downloads\escrow-saaas\src\app\dashboard\buyer\audit-log\page.tsx: line 40, col 50, Error - Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+C:\Users\Admin\Downloads\escrow-saaas\src\app\dashboard\seller\audit-log\page.tsx: line 40, col 50, Error - Unexpected any. Specify a different type. (@typescript-eslint/no-explicit-any)
+
+2 problems
