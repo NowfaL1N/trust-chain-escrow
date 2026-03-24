@@ -7,8 +7,17 @@ export const dynamic = "force-dynamic";
 const SELLER_EMAIL = "sreeharisreehari611@gmail.com";
 const SELLER_PASSWORD = "Seller@123";
 
-export async function POST() {
+function isSeedAuthorized(request: Request): boolean {
+  const key = (process.env.SEED_ADMIN_KEY || "").trim();
+  if (!key) return process.env.NODE_ENV !== "production";
+  return request.headers.get("x-admin-key") === key;
+}
+
+export async function POST(request: Request) {
   try {
+    if (!isSeedAuthorized(request)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const supabase = getSupabaseServer();
 
     const { data: existingUser, error: findErr } = await supabase
@@ -98,7 +107,10 @@ export async function POST() {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!isSeedAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   return NextResponse.json({
     message: "POST to this URL to create or update the seller (sreeharisreehari611@gmail.com).",
     email: SELLER_EMAIL,

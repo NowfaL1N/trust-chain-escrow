@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
+import { getRequiredEnv } from "./security";
 
-const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_change_this";
+const JWT_SECRET = getRequiredEnv("JWT_SECRET");
 
 export interface JWTPayload {
   userId: string;

@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { getSupabaseServer } from "@/lib/supabase";
 import { generateToken } from "@/lib/auth";
 import { friendlyMissingTableError, isUniqueViolation } from "@/lib/db-map";
+import { isStrongPassword } from "@/lib/security";
+import { clientIpFromRequest, isRateLimited } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +14,13 @@ function isNonEmptyString(v: unknown): v is string {
 
 export async function POST(req: Request) {
   try {
+    const preview = await req.clone().json().catch(() => ({} as { email?: string }));
+    const emailKey = typeof preview.email === "string" ? preview.email.trim().toLowerCase() : "unknown";
+    const rlKey = `register:${clientIpFromRequest(req)}:${emailKey}`;
+    if (isRateLimited(rlKey, 6, 15 * 60 * 1000)) {
+      return NextResponse.json({ error: "Too many registration attempts. Try again later." }, { status: 429 });
+    }
+
     const supabase = getSupabaseServer();
     const body = await req.json();
     const rawEmail = body.email;
@@ -23,6 +32,12 @@ export async function POST(req: Request) {
 
     if (!email || !password || !name || !role) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+    if (!isStrongPassword(String(password))) {
+      return NextResponse.json(
+        { error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character." },
+        { status: 400 }
+      );
     }
 
     const { data: existingUser, error: existingErr } = await supabase.from("users").select("id").eq("email", email).maybeSingle();
@@ -132,7 +147,7 @@ export async function POST(req: Request) {
     });
 
     const userRole = user.role === "seller" ? "seller" : "buyer";
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         token,
         user: {
@@ -145,6 +160,14 @@ export async function POST(req: Request) {
       },
       { status: 201 }
     );
+    response.cookies.set("escrow_token", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60,
+    });
+    return response;
   } catch (error) {
     console.error("Registration Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
