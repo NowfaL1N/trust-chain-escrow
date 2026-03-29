@@ -17,7 +17,7 @@ export function SiteNav({
   dashboardRole,
 }: SiteNavProps) {
   return (
-    <nav className="relative z-10 w-full px-6 py-6 lg:px-20 flex justify-between items-center border-b border-border bg-card/80 backdrop-blur-md">
+    <nav className="relative z-10 w-full px-4 sm:px-6 py-4 sm:py-6 lg:px-20 flex justify-between items-center border-b border-border bg-card/80 backdrop-blur-md">
       <motion.div
         initial={{ opacity: 0, x: -12 }}
         animate={{ opacity: 1, x: 0 }}
