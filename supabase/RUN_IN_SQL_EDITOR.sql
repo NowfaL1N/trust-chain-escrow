@@ -10,9 +10,9 @@
 CREATE TABLE IF NOT EXISTS public.companies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_legal_name TEXT NOT NULL,
-  cin TEXT NOT NULL UNIQUE,
-  gstin TEXT NOT NULL UNIQUE,
-  pan TEXT NOT NULL UNIQUE,
+  cin TEXT,
+  gstin TEXT, 
+  pan TEXT,
   business_address TEXT NOT NULL,
   country TEXT NOT NULL DEFAULT 'India',
   company_email TEXT,
@@ -21,12 +21,60 @@ CREATE TABLE IF NOT EXISTS public.companies (
   representative_name TEXT NOT NULL,
   representative_role TEXT,
   phone TEXT NOT NULL,
+  -- New country-based identifier fields
+  lei TEXT,
+  lei_verified BOOLEAN DEFAULT FALSE,
+  identifier_type TEXT,
+  primary_identifier TEXT,
+  secondary_identifier TEXT,
   documents JSONB DEFAULT '{}'::jsonb,
+  listing_product_name TEXT,
+  listing_product_price NUMERIC(14, 2),
+  listing_product_description TEXT,
+  listing_product_image_url TEXT,
+  listing_product_image_urls JSONB DEFAULT '[]'::jsonb,
   verified BOOLEAN NOT NULL DEFAULT FALSE,
   verified_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Listing columns for existing databases (CREATE TABLE IF NOT EXISTS does not add new columns)
+ALTER TABLE public.companies
+  ADD COLUMN IF NOT EXISTS listing_product_name TEXT,
+  ADD COLUMN IF NOT EXISTS listing_product_price NUMERIC(14, 2),
+  ADD COLUMN IF NOT EXISTS listing_product_description TEXT,
+  ADD COLUMN IF NOT EXISTS listing_product_image_url TEXT,
+  ADD COLUMN IF NOT EXISTS listing_product_image_urls JSONB DEFAULT '[]'::jsonb;
+
+-- Storage bucket for listing + dispute images (run once per project)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'escrow-uploads',
+  'escrow-uploads',
+  true,
+  5242880,
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']::text[]
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+DROP POLICY IF EXISTS "Public read escrow-uploads" ON storage.objects;
+CREATE POLICY "Public read escrow-uploads"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'escrow-uploads');
+
+-- Add indexes for new fields
+CREATE INDEX IF NOT EXISTS idx_companies_lei ON public.companies (lei) WHERE lei IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_companies_primary_identifier ON public.companies (primary_identifier);
+
+-- Update existing companies for backward compatibility
+UPDATE public.companies 
+SET identifier_type = country,
+    primary_identifier = COALESCE(gstin, primary_identifier)
+WHERE identifier_type IS NULL;
 
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
