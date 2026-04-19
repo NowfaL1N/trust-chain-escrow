@@ -139,7 +139,7 @@ export async function GET(
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const supabase = getSupabaseServer();
     const { data: txn, error } = await supabase.from("transactions").select("*").eq("id", id).maybeSingle();
 
