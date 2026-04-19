@@ -5,6 +5,8 @@ import { generateToken } from "@/lib/auth";
 import { friendlyMissingTableError, isUniqueViolation } from "@/lib/db-map";
 import { isStrongPassword } from "@/lib/security";
 import { clientIpFromRequest, isRateLimited } from "@/lib/rate-limit";
+import { validateLEI, getCountryConfig, validateCountryIdentifier } from "@/lib/country-identifiers";
+import { verifyAndUpdateLEI } from "@/lib/lei-verification";
 
 export const dynamic = "force-dynamic";
 
@@ -63,19 +65,58 @@ export async function POST(req: Request) {
       const representativeName = (cd.representativeName != null ? String(cd.representativeName) : "").trim();
       const phone = (cd.phone != null ? String(cd.phone) : "").trim();
 
+      // New country-based identifier fields
+      const lei = (cd.lei != null ? String(cd.lei) : "").trim().toUpperCase();
+      const primaryIdentifier = (cd.primaryIdentifier != null ? String(cd.primaryIdentifier) : "").trim();
+      const secondaryIdentifier = (cd.secondaryIdentifier != null ? String(cd.secondaryIdentifier) : "").trim();
+      const identifierType = (cd.identifierType != null ? String(cd.identifierType) : "").trim() || country;
+
+      // Validate new country-based identifier fields
+      const countryConfig = getCountryConfig(country);
+      
+      // LEI validation (optional but must be valid if provided)
+      if (lei && !validateLEI(lei)) {
+        return NextResponse.json(
+          { error: "Invalid LEI format. LEI must be exactly 20 alphanumeric characters." },
+          { status: 400 }
+        );
+      }
+
+      // Primary identifier is required
+      if (!isNonEmptyString(primaryIdentifier)) {
+        const primaryLabel = countryConfig?.primary || "Primary business identifier";
+        return NextResponse.json(
+          { error: `${primaryLabel} is required.` },
+          { status: 400 }
+        );
+      }
+
+      // Validate primary identifier format
+      if (countryConfig?.primaryPattern && !validateCountryIdentifier(primaryIdentifier, countryConfig.primaryPattern)) {
+        return NextResponse.json(
+          { error: `Invalid ${countryConfig.primary} format.` },
+          { status: 400 }
+        );
+      }
+
+      // Validate secondary identifier format (if provided)
+      if (secondaryIdentifier && countryConfig?.secondaryPattern && !validateCountryIdentifier(secondaryIdentifier, countryConfig.secondaryPattern)) {
+        return NextResponse.json(
+          { error: `Invalid ${countryConfig.secondary} format.` },
+          { status: 400 }
+        );
+      }
+
+      // Basic required field validation (keeping existing for backward compatibility)
       if (
         !isNonEmptyString(companyLegalName) ||
-        !isNonEmptyString(cin) ||
-        !isNonEmptyString(gstin) ||
-        !isNonEmptyString(pan) ||
         !isNonEmptyString(businessAddress) ||
         !isNonEmptyString(representativeName) ||
         !isNonEmptyString(phone)
       ) {
         return NextResponse.json(
           {
-            error:
-              "Please fill all required company fields: Legal name, CIN, GSTIN, PAN, Business address, Representative name, and Phone.",
+            error: "Please fill all required company fields: Legal name, Business address, Representative name, and Phone.",
           },
           { status: 400 }
         );
@@ -85,9 +126,17 @@ export async function POST(req: Request) {
         .from("companies")
         .insert({
           company_legal_name: companyLegalName,
-          cin,
-          gstin,
-          pan,
+          // Legacy fields for backward compatibility (now optional)
+          cin: secondaryIdentifier || cin || null,
+          gstin: primaryIdentifier || gstin || null,
+          pan: pan || null,
+          // New country-based identifier fields
+          lei: lei || null,
+          lei_verified: false,
+          identifier_type: identifierType,
+          primary_identifier: primaryIdentifier,
+          secondary_identifier: secondaryIdentifier || null,
+          // Other fields
           business_address: businessAddress,
           country,
           company_email: email,
@@ -116,6 +165,14 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: companyErr.message || "Invalid company details." }, { status: 400 });
       }
       companyId = company!.id;
+
+      // Optional: Verify LEI if provided (runs in background, doesn't block registration)
+      if (lei) {
+        verifyAndUpdateLEI(supabase, companyId, lei).catch(error => {
+          console.warn("LEI verification failed:", error);
+          // Don't fail registration if LEI verification fails
+        });
+      }
     }
 
     const { data: user, error: userErr } = await supabase

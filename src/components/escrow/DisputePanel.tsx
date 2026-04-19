@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, Upload, RotateCcw, CheckCircle, Clock, Shield, X, Image as ImageIcon } from "lucide-react";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 const MAX_IMAGES = 10;
 const MAX_FILE_SIZE_MB = 5;
@@ -140,7 +141,7 @@ export default function DisputePanel({ onComplete }: Props) {
               <div className="flex flex-wrap gap-3 mt-2">
                 {evidenceImages.map((url, i) => (
                   <div key={i} className="relative group">
-                    <img src={url} alt={`Evidence ${i + 1}`} className="w-20 h-20 object-cover rounded-lg border border-slate-200" />
+                    <OptimizedImage src={url} alt={`Evidence ${i + 1}`} width={80} height={80} className="object-cover rounded-lg border border-slate-200" />
                     <button type="button" onClick={() => removeImage(i)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-90 group-hover:opacity-100">
                       <X className="w-3 h-3" />
                     </button>
@@ -207,7 +208,7 @@ export default function DisputePanel({ onComplete }: Props) {
               <div className="flex flex-wrap gap-2">
                 <span className="text-xs text-slate-500">Uploaded images:</span>
                 {evidenceImages.map((url, i) => (
-                  <img key={i} src={url} alt={`Evidence ${i + 1}`} className="w-14 h-14 object-cover rounded border border-slate-200" />
+                  <OptimizedImage key={i} src={url} alt={`Evidence ${i + 1}`} width={56} height={56} className="object-cover rounded border border-slate-200" />
                 ))}
               </div>
             )}

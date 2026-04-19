@@ -18,10 +18,10 @@ import {
 } from "lucide-react";
 
 import CompanyVerificationForm from "./CompanyVerificationForm";
-import SellerSelector from "./SellerSelector";
+import SellerSelector, { type Seller } from "./SellerSelector";
 import TokenGenerator from "./TokenGenerator";
 import TokenVerification from "./TokenVerification";
-import ProductRequestForm from "./ProductRequestForm";
+import ProductRequestForm, { sellerListingFromApiSeller } from "./ProductRequestForm";
 import SellerApprovalPanel from "./SellerApprovalPanel";
 import PaymentSimulation from "./PaymentSimulation";
 import DeliveryConfirmation from "./DeliveryConfirmation";
@@ -71,9 +71,23 @@ export default function EscrowWizard({ onClose, initialTransaction }: Props) {
     }
   }, []);
 
+  /** When resuming a transaction, recover seller row (for product listing) from the sellers directory. */
+  useEffect(() => {
+    const sid = initialTransaction?.sellerId;
+    if (!sid) return;
+    const token = typeof window !== "undefined" ? localStorage.getItem("escrow_token") : null;
+    fetch("/api/sellers", { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: Seller[]) => {
+        const found = Array.isArray(data) ? data.find((s) => s.id === sid) : null;
+        if (found) setSelectedSeller(found);
+      })
+      .catch(() => {});
+  }, [initialTransaction?.sellerId]);
+
   // Wizard data (persisted when going back until transaction complete or modal closed)
   const [companyData, setCompanyData] = useState<Record<string, string> | null>(null);
-  const [selectedSeller, setSelectedSeller] = useState<{ id: string; companyName: string; industry: string; location: string; trustScore: number; email: string } | null>(null);
+  const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
   const [, setTokens] = useState<EscrowTokens | null>(null);
   const [productRequest, setProductRequest] = useState<{ productName: string; quantity: number; pricePerUnit: number; deliveryTimeline: string; specialNotes: string } | null>(
     initialTransaction && initialTransaction.product
@@ -282,6 +296,7 @@ export default function EscrowWizard({ onClose, initialTransaction }: Props) {
 
               {step === 5 && (
                 <ProductRequestForm
+                  sellerListing={sellerListingFromApiSeller(selectedSeller)}
                   initialData={productRequest}
                   onNext={async (data) => {
                     setProductRequest(data);

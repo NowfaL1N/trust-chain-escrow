@@ -45,8 +45,17 @@ export default function SellerDashboardPage() {
     refreshTransactions();
   };
 
-  const handleRaiseDispute = async (id: string, details: { description: string; evidence: string }) => {
-    await raiseDispute(id, details.description, details.evidence, false);
+  const handleRaiseDispute = async (
+    id: string,
+    details: { title: string; description: string; resolution: string; imageUrls: string[] }
+  ) => {
+    await raiseDispute(id, {
+      title: details.title,
+      description: details.description,
+      resolution: details.resolution,
+      evidenceImageUrls: details.imageUrls,
+      returnRequested: false,
+    });
     refreshTransactions();
   };
 

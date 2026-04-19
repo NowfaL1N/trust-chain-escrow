@@ -28,6 +28,11 @@ export interface DbCompany {
   representative_role: string | null;
   phone: string;
   documents: Record<string, unknown> | null;
+  listing_product_name: string | null;
+  listing_product_price: string | number | null;
+  listing_product_description: string | null;
+  listing_product_image_url: string | null;
+  listing_product_image_urls: string[] | Record<string, unknown> | null;
   verified: boolean;
   verified_at: string | null;
   created_at: string;

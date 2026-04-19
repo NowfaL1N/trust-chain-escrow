@@ -11,6 +11,11 @@ export type Seller = {
   location: string;
   trustScore: number;
   email: string;
+  listingProductName?: string | null;
+  listingProductPrice?: number | null;
+  listingProductDescription?: string | null;
+  listingProductImageUrl?: string | null;
+  listingProductImageUrls?: string[];
 };
 
 type Props = { onNext: (seller: Seller) => void; initialSelected?: Seller | null };
@@ -49,16 +54,19 @@ export default function SellerSelector({ onNext, initialSelected }: Props) {
   };
 
   const handleContinueWithEmail = () => {
-    const email = sellerEmail.trim();
+    const email = sellerEmail.trim().toLowerCase();
     if (!email) return;
-    const seller: Seller = {
-      id: email,
-      companyName: email,
-      industry: "—",
-      location: "—",
-      trustScore: 0,
-      email,
-    };
+    const fromList = sellers.find((s) => s.email.toLowerCase() === email);
+    const seller: Seller = fromList
+      ? { ...fromList, email: fromList.email }
+      : {
+          id: email,
+          companyName: email,
+          industry: "—",
+          location: "—",
+          trustScore: 0,
+          email,
+        };
     setSelected(seller);
     localStorage.setItem("escrow_selected_seller", JSON.stringify(seller));
     onNext(seller);
@@ -118,6 +126,43 @@ export default function SellerSelector({ onNext, initialSelected }: Props) {
                 )}
                 <h4 className="font-bold text-slate-900 mb-1">{seller.companyName}</h4>
                 <p className="text-xs text-slate-500 mb-2">{seller.industry}</p>
+                {seller.listingProductName && seller.listingProductPrice != null && seller.listingProductPrice > 0 && (
+                  <div className="flex gap-2 mb-2 items-start">
+                    {(() => {
+                      const imgs =
+                        Array.isArray(seller.listingProductImageUrls) && seller.listingProductImageUrls.length > 0
+                          ? seller.listingProductImageUrls
+                          : seller.listingProductImageUrl
+                            ? [seller.listingProductImageUrl]
+                            : [];
+                      const show = imgs.slice(0, 4);
+                      const more = imgs.length - show.length;
+                      return show.length > 0 ? (
+                        <div className="flex gap-1 shrink-0">
+                          {show.map((src, idx) => (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              key={`${idx}-${src}`}
+                              src={src}
+                              alt=""
+                              className="w-10 h-10 rounded-md object-cover border border-slate-200"
+                            />
+                          ))}
+                          {more > 0 && (
+                            <span className="w-10 h-10 rounded-md border border-slate-200 bg-slate-100 text-[10px] font-bold flex items-center justify-center text-slate-600">
+                              +{more}
+                            </span>
+                          )}
+                        </div>
+                      ) : null;
+                    })()}
+                    <p className="text-xs text-slate-600 line-clamp-2">
+                      <span className="font-semibold">{seller.listingProductName}</span>
+                      <span className="text-slate-400"> · </span>$
+                      {Number(seller.listingProductPrice).toLocaleString("en-US", { minimumFractionDigits: 2 })}/unit
+                    </p>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-slate-500 flex items-center gap-1"><MapPin className="w-3 h-3" /> {seller.location}</span>
                   <span className="text-xs font-bold text-amber-600 flex items-center gap-1"><Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {seller.trustScore}</span>

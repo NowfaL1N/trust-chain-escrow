@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { Package, X, ImagePlus } from "lucide-react";
 import { MAX_LISTING_PRODUCT_IMAGES } from "@/lib/listing-images";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 
 function isLikelyImageFile(file: File): boolean {
   if (file.type.startsWith("image/")) return true;
@@ -440,8 +441,7 @@ export default function SellerProductListingPage() {
                           }`}
                         >
                           {src ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={src} alt="" className="w-full h-full object-cover" />
+                            <OptimizedImage src={src} alt="" width={100} height={100} className="w-full h-full object-cover" />
                           ) : null}
                           {pending && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-xs font-bold">

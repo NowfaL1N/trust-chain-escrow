@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SiteNav } from "@/components/site-nav";
 import { cn } from "@/lib/utils";
+import { CountryIdentifierFields, CountryIdentifierData } from "@/components/country-identifier-fields";
 
 function RegisterContent() {
   const searchParams = useSearchParams();
@@ -36,6 +37,27 @@ function RegisterContent() {
     phone: "",
   });
 
+  // New country-based identifier fields
+  const [countryIdentifiers, setCountryIdentifiers] = useState<CountryIdentifierData>({
+    country: "India",
+    lei: "",
+    primaryIdentifier: "",
+    secondaryIdentifier: "",
+    identifierType: "India",
+  });
+
+  // Sync country selection between old and new fields
+  const handleCountryIdentifierChange = (newData: CountryIdentifierData) => {
+    setCountryIdentifiers(newData);
+    setCompanyDetails(prev => ({
+      ...prev,
+      country: newData.country,
+      // Update legacy fields for backward compatibility
+      gstin: newData.primaryIdentifier,
+      cin: newData.secondaryIdentifier,
+    }));
+  };
+
   useEffect(() => {
     const emailParam = searchParams.get("email");
     const roleParam = searchParams.get("role") as "buyer" | "seller";
@@ -61,7 +83,11 @@ function RegisterContent() {
           email,
           password,
           role,
-          companyDetails,
+          companyDetails: {
+            ...companyDetails,
+            // Include new country-based identifier fields
+            ...countryIdentifiers,
+          },
         }),
       });
 
@@ -183,38 +209,12 @@ function RegisterContent() {
                         required
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <Label className="text-xs font-semibold">CIN</Label>
-                        <Input
-                          placeholder="U12345MH..."
-                          value={companyDetails.cin}
-                          onChange={(e) => setCompanyDetails({...companyDetails, cin: e.target.value})}
-                          className="h-10 text-sm"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs font-semibold">GSTIN</Label>
-                        <Input
-                          placeholder="27ABCDE..."
-                          value={companyDetails.gstin}
-                          onChange={(e) => setCompanyDetails({...companyDetails, gstin: e.target.value})}
-                          className="h-10 text-sm"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">PAN</Label>
-                      <Input
-                        placeholder="ABCDE1234F"
-                        value={companyDetails.pan}
-                        onChange={(e) => setCompanyDetails({...companyDetails, pan: e.target.value})}
-                        className="h-10 text-sm"
-                        required
-                      />
-                    </div>
+                    {/* Dynamic Country-based Identifier Fields */}
+                    <CountryIdentifierFields
+                      data={countryIdentifiers}
+                      onChange={handleCountryIdentifierChange}
+                    />
+                    
                     <div className="space-y-1">
                       <Label className="text-xs font-semibold">Business Address</Label>
                       <Input

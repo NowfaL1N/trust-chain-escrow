@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServer } from "@/lib/supabase";
+import { parseListingImageUrlsFromCompany } from "@/lib/listing-images";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,9 @@ export async function GET() {
     if (companyIds.length > 0) {
       const { data: companies, error: compErr } = await supabase
         .from("companies")
-        .select("id, company_legal_name, country, representative_name, phone, business_address")
+        .select(
+          "id, company_legal_name, country, representative_name, phone, business_address, listing_product_name, listing_product_price, listing_product_description, listing_product_image_url, listing_product_image_urls"
+        )
         .in("id", companyIds);
 
       if (!compErr && companies) {
@@ -45,6 +48,14 @@ export async function GET() {
     const list = (sellers ?? []).map((s) => {
       const cid = s.company_id != null ? String(s.company_id) : null;
       const company = cid ? companyMap[cid] : null;
+      const imageUrls = company
+        ? parseListingImageUrlsFromCompany(
+            company as {
+              listing_product_image_urls?: unknown;
+              listing_product_image_url?: string | null;
+            }
+          )
+        : [];
       return {
         id: s.id,
         email: String(s.email ?? ""),
@@ -55,6 +66,14 @@ export async function GET() {
         representativeName: (company?.representative_name as string) ?? s.name ?? "—",
         phone: (company?.phone as string) ?? "—",
         businessAddress: (company?.business_address as string) ?? "—",
+        listingProductName: (company?.listing_product_name as string | null) ?? null,
+        listingProductPrice:
+          company?.listing_product_price != null
+            ? Number(company.listing_product_price)
+            : null,
+        listingProductDescription: (company?.listing_product_description as string | null) ?? null,
+        listingProductImageUrl: imageUrls[0] ?? null,
+        listingProductImageUrls: imageUrls,
       };
     });
 

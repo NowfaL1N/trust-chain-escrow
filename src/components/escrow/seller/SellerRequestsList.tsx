@@ -29,7 +29,10 @@ type Props = {
   onAccept: (id: string) => void;
   onReject: (id: string) => void;
   onUpdateDelivery: (id: string, state: "shipped" | "delivered") => void;
-  onRaiseDispute: (id: string, details: { title: string; description: string; evidence: string; resolution: string }) => void;
+  onRaiseDispute: (
+    id: string,
+    details: { title: string; description: string; resolution: string; imageUrls: string[] }
+  ) => void | Promise<void>;
   activeTab: string;
 };
 
@@ -179,9 +182,15 @@ export default function SellerRequestsList({ transactions, onAccept, onReject, o
                         </div>
 
                         {disputingId === txn._id ? (
-                          <DisputeForm 
-                            onSubmit={(title, desc, evidence, res) => {
-                              onRaiseDispute(txn._id, { title, description: desc, evidence, resolution: res });
+                          <DisputeForm
+                            transactionId={txn._id}
+                            onSubmit={async (payload) => {
+                              await onRaiseDispute(txn._id, {
+                                title: payload.title,
+                                description: payload.description,
+                                resolution: payload.resolution,
+                                imageUrls: payload.imageUrls,
+                              });
                               setDisputingId(null);
                             }}
                             onCancel={() => setDisputingId(null)}
@@ -197,29 +206,61 @@ export default function SellerRequestsList({ transactions, onAccept, onReject, o
 
                     {/* Escrow Details Read-Only Blocks (Always visible when expanded and verified/not-initiated) */}
                     {(txn.status !== "initiated" || isVerified(txn._id)) && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mt-4">
-                        <div>
-                          <h4 className="font-bold text-slate-900 dark:text-white mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Order Information</h4>
-                          <dl className="space-y-3 text-sm">
-                            <div className="grid grid-cols-3"><dt className="text-slate-500">Product</dt><dd className="col-span-2 font-medium text-slate-900 dark:text-white">{txn.product?.name}</dd></div>
-                            <div className="grid grid-cols-3"><dt className="text-slate-500">Quantity</dt><dd className="col-span-2 text-slate-900 dark:text-white">{txn.product?.quantity} units</dd></div>
-                            <div className="grid grid-cols-3"><dt className="text-slate-500">Price per Unit</dt><dd className="col-span-2 text-slate-900 dark:text-white">${txn.product?.pricePerUnit?.toLocaleString()}</dd></div>
-                            <div className="grid grid-cols-3"><dt className="text-slate-500">Delivery By</dt><dd className="col-span-2 text-slate-900 dark:text-white">{txn.product?.deliveryTimeline}</dd></div>
-                            {txn.product?.specialNotes && (
-                              <div className="mt-4"><dt className="text-slate-500 mb-1">Special Notes / Terms</dt><dd className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300 italic">&quot;{txn.product.specialNotes}&quot;</dd></div>
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm mt-4">
+                          <div>
+                            <h4 className="font-bold text-slate-900 dark:text-white mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Order Information</h4>
+                            <dl className="space-y-3 text-sm">
+                              <div className="grid grid-cols-3"><dt className="text-slate-500">Product</dt><dd className="col-span-2 font-medium text-slate-900 dark:text-white">{txn.product?.name}</dd></div>
+                              <div className="grid grid-cols-3"><dt className="text-slate-500">Quantity</dt><dd className="col-span-2 text-slate-900 dark:text-white">{txn.product?.quantity} units</dd></div>
+                              <div className="grid grid-cols-3"><dt className="text-slate-500">Price per Unit</dt><dd className="col-span-2 text-slate-900 dark:text-white">${txn.product?.pricePerUnit?.toLocaleString()}</dd></div>
+                              <div className="grid grid-cols-3"><dt className="text-slate-500">Delivery By</dt><dd className="col-span-2 text-slate-900 dark:text-white">{txn.product?.deliveryTimeline}</dd></div>
+                              {txn.product?.specialNotes && (
+                                <div className="mt-4"><dt className="text-slate-500 mb-1">Special Notes / Terms</dt><dd className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300 italic">&quot;{txn.product.specialNotes}&quot;</dd></div>
+                              )}
+                            </dl>
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-slate-900 dark:text-white mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Buyer Information</h4>
+                            <dl className="space-y-3 text-sm">
+                              <div className="grid grid-cols-3"><dt className="text-slate-500">Company</dt><dd className="col-span-2 font-medium text-slate-900 dark:text-white">{txn.buyerCompany}</dd></div>
+                              <div className="grid grid-cols-3"><dt className="text-slate-500">System ID</dt><dd className="col-span-2 text-slate-900 dark:text-white font-mono text-xs">{txn._id}</dd></div>
+                              <div className="grid grid-cols-3"><dt className="text-slate-500">Request Date</dt><dd className="col-span-2 text-slate-900 dark:text-white">{new Date(txn.createdAt).toLocaleString()}</dd></div>
+                              {txn.fundedAt && <div className="grid grid-cols-3"><dt className="text-emerald-600 font-medium">Funded Date</dt><dd className="col-span-2 text-slate-900 dark:text-white">{new Date(txn.fundedAt).toLocaleString()}</dd></div>}
+                            </dl>
+                          </div>
+                        </div>
+                        {txn.status === "disputed" && txn.dispute && (
+                          <div className="mt-4 bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-xl p-6">
+                            <h4 className="font-bold text-rose-900 dark:text-rose-100 mb-3">Dispute on file</h4>
+                            {"title" in txn.dispute && (txn.dispute as { title?: string }).title && (
+                              <p className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                                {(txn.dispute as { title?: string }).title}
+                              </p>
                             )}
-                          </dl>
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-slate-900 dark:text-white mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Buyer Information</h4>
-                          <dl className="space-y-3 text-sm">
-                            <div className="grid grid-cols-3"><dt className="text-slate-500">Company</dt><dd className="col-span-2 font-medium text-slate-900 dark:text-white">{txn.buyerCompany}</dd></div>
-                            <div className="grid grid-cols-3"><dt className="text-slate-500">System ID</dt><dd className="col-span-2 text-slate-900 dark:text-white font-mono text-xs">{txn._id}</dd></div>
-                            <div className="grid grid-cols-3"><dt className="text-slate-500">Request Date</dt><dd className="col-span-2 text-slate-900 dark:text-white">{new Date(txn.createdAt).toLocaleString()}</dd></div>
-                            {txn.fundedAt && <div className="grid grid-cols-3"><dt className="text-emerald-600 font-medium">Funded Date</dt><dd className="col-span-2 text-slate-900 dark:text-white">{new Date(txn.fundedAt).toLocaleString()}</dd></div>}
-                          </dl>
-                        </div>
-                      </div>
+                            <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{txn.dispute.description}</p>
+                            {"resolution" in txn.dispute && (txn.dispute as { resolution?: string }).resolution && (
+                              <p className="text-xs text-slate-500 mt-2">
+                                Requested resolution: {(txn.dispute as { resolution?: string }).resolution}
+                              </p>
+                            )}
+                            {Array.isArray((txn.dispute as { evidenceImageUrls?: string[] }).evidenceImageUrls) &&
+                              (txn.dispute as { evidenceImageUrls: string[] }).evidenceImageUrls.length > 0 && (
+                                <div className="mt-4">
+                                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Evidence (stored)</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {(txn.dispute as { evidenceImageUrls: string[] }).evidenceImageUrls.map((url) => (
+                                      <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="block">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={url} alt="" className="w-24 h-24 object-cover rounded-lg border border-rose-200 dark:border-rose-800" />
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </motion.div>

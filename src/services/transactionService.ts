@@ -16,6 +16,7 @@ export type TransactionStatus =
 
 export type EscrowTransaction = {
   _id: string; // Transaction id (UUID from API)
+  sellerId?: string;
   status: TransactionStatus;
   buyerCompany: string;
   sellerCompany: string;
@@ -33,8 +34,12 @@ export type EscrowTransaction = {
   disputeDeadline: string | null;
   autoReleaseDeadline: string | null;
   dispute: {
+    title?: string;
     description: string;
+    resolution?: string;
     evidence: string;
+    /** Persisted image URLs (Supabase Storage); also stored in DB JSONB */
+    evidenceImageUrls?: string[];
     returnRequested: boolean;
     sellerApprovedReturn: boolean;
   } | null;
@@ -144,15 +149,29 @@ export async function updateDeliveryStatus(id: string, status: "shipped" | "deli
   return updateTransaction(id, { status });
 }
 
-export async function raiseDispute(id: string, description: string, evidence: string, returnRequested: boolean): Promise<EscrowTransaction | null> {
+export async function raiseDispute(
+  id: string,
+  payload: {
+    title?: string;
+    description: string;
+    resolution?: string;
+    /** Free-text evidence (e.g. link); photos use evidenceImageUrls */
+    evidence?: string;
+    evidenceImageUrls: string[];
+    returnRequested: boolean;
+  }
+): Promise<EscrowTransaction | null> {
   const now = new Date();
   const disputeDeadline = new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000); // 45 days
   return updateTransaction(id, {
     status: "disputed",
     dispute: {
-      description,
-      evidence,
-      returnRequested,
+      title: payload.title,
+      description: payload.description,
+      resolution: payload.resolution,
+      evidence: payload.evidence ?? "",
+      evidenceImageUrls: payload.evidenceImageUrls,
+      returnRequested: payload.returnRequested,
       sellerApprovedReturn: false,
     },
     disputeDeadline: disputeDeadline.toISOString(),
