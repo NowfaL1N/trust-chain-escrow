@@ -1,6 +1,8 @@
 // LEI (Legal Entity Identifier) verification using GLEIF API
 // Optional enhancement for verifying LEI codes
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 export interface LEIVerificationResult {
   valid: boolean;
   legalName?: string;
@@ -70,7 +72,7 @@ export async function verifyLEI(lei: string): Promise<LEIVerificationResult> {
 }
 
 // Optional: Add LEI verification to the registration process
-export async function verifyAndUpdateLEI(supabase: unknown, companyId: string, lei: string): Promise<boolean> {
+export async function verifyAndUpdateLEI(supabase: SupabaseClient, companyId: string, lei: string): Promise<boolean> {
   try {
     const result = await verifyLEI(lei);
     
