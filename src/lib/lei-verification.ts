@@ -70,7 +70,7 @@ export async function verifyLEI(lei: string): Promise<LEIVerificationResult> {
 }
 
 // Optional: Add LEI verification to the registration process
-export async function verifyAndUpdateLEI(supabase: any, companyId: string, lei: string): Promise<boolean> {
+export async function verifyAndUpdateLEI(supabase: unknown, companyId: string, lei: string): Promise<boolean> {
   try {
     const result = await verifyLEI(lei);
     

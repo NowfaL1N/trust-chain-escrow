@@ -30,7 +30,6 @@ export function CountryIdentifierFields({ data, onChange, className = "" }: Coun
   const config = getCountryConfig(data.country);
   
   const handleCountryChange = (country: string) => {
-    const newConfig = getCountryConfig(country);
     onChange({
       ...data,
       country,

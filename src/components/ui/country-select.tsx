@@ -143,7 +143,7 @@ export function CountrySelect({
         <div className="max-h-60 overflow-y-auto p-1">
           {filteredOptions.length === 0 ? (
             <div className="px-2 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
-              No countries found for "{searchQuery}"
+              No countries found for &quot;{searchQuery}&quot;
             </div>
           ) : (
             filteredOptions.map((option, index) => {

@@ -14,7 +14,7 @@ const Select = React.forwardRef<
     children: React.ReactNode;
     disabled?: boolean;
   }
->(({ value, onValueChange, children, disabled, ...props }, ref) => {
+>(({ value, onValueChange, children }) => {
   const [open, setOpen] = React.useState(false);
 
   return (

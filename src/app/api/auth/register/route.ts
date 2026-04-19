@@ -167,7 +167,7 @@ export async function POST(req: Request) {
       companyId = company!.id;
 
       // Optional: Verify LEI if provided (runs in background, doesn't block registration)
-      if (lei) {
+      if (lei && companyId) {
         verifyAndUpdateLEI(supabase, companyId, lei).catch(error => {
           console.warn("LEI verification failed:", error);
           // Don't fail registration if LEI verification fails
